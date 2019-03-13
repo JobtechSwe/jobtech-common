@@ -10,4 +10,3 @@ Install
 1. cd to jobtech-common
 2. pip install -r requirements.txt 
 3. python setup.py develop
-4. pip install .
