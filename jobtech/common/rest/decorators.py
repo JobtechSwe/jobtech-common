@@ -35,9 +35,12 @@ def check_api_key(api_identifier):
             if int(time.time()) > last_check_ts + 60:  # Refresh keys every 60 secs
                 apikeys_id = "%s_%s" % (settings.ES_APIKEYS_DOC_ID, api_identifier)
                 log.debug("Reloading API keys for id %s" % apikeys_id)
-                valid_api_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
-                                                    doc_type='_all',
-                                                    id=apikeys_id, ignore=404)
+                new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
+                                              doc_type='settings',
+                                              id=apikeys_id, ignore=404)
+                if new_keys:
+                    log.debug("Updating API keys from ES")
+                    valid_api_keys = new_keys
                 last_check_ts = time.time()
             apikey = request.headers.get(settings.APIKEY)
             if valid_api_keys and apikey in valid_api_keys.get('validkeys', []):
