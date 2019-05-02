@@ -36,7 +36,6 @@ def check_api_key(api_identifier):
                 apikeys_id = "%s_%s" % (settings.ES_APIKEYS_DOC_ID, api_identifier)
                 log.debug("Reloading API keys for id %s" % apikeys_id)
                 new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
-                                              doc_type='settings',
                                               id=apikeys_id, ignore=404)
                 if new_keys:
                     log.debug("Updating API keys from ES")
