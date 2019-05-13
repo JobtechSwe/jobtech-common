@@ -3,6 +3,54 @@ import json
 import os
 
 
+def configure_logging(local_modules=[]):
+    logging.basicConfig()
+    # Remove basicConfig-handlers and replace with custom formatter.
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    stream_handler = logging.StreamHandler()
+
+    f = create_log_formatter()
+    stream_handler.setFormatter(f)
+    root = logging.getLogger()
+    # root.setLevel(logging.INFO)
+    root.addHandler(stream_handler)
+
+    set_custom_log_level(local_modules)
+
+
+def create_log_formatter():
+    if os.getenv('FLASK_ENV', '') == 'development':
+        is_develop_mode = True
+    else:
+        is_develop_mode = False
+    f = JobtechLogFormatter('%(asctime)s|%(levelname)s|%(name)s|MESSAGE: %(message)s',
+                            '%Y-%m-%d %H:%M:%S%z', is_develop_mode=is_develop_mode)
+    return f
+
+
+def set_custom_log_level(local_modules):
+    # Set log level debug for module specific events
+    # and level warning for all third party dependencies
+    master_module = str(__name__).split('.')[0]
+    local_modules.append(master_module)
+    local_module = False
+    for key in logging.Logger.manager.loggerDict:
+        for lm in local_modules:
+            if key.startswith(lm):
+                local_module = True
+        if local_module:
+            if os.getenv('LOGLEVEL', '') == 'debug':
+                print("Setting loglevel DEBUG for %s" % key)
+                logging.getLogger(key).setLevel(logging.DEBUG)
+            else:
+                print("Setting loglevel INFO for %s" % key)
+                logging.getLogger(key).setLevel(logging.INFO)
+        else:
+            logging.getLogger(key).setLevel(logging.WARNING)
+        local_module = False
+
+
 class JobtechLogFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None, style='%', is_develop_mode=False):
         super().__init__(fmt, datefmt, style)
