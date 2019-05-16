@@ -2,17 +2,39 @@ import logging
 import base64
 import binascii
 import re
-import time
+import json
 from flask import request
 from flask_restplus import abort
+from pymemcache.client import base
 from jobtech.common import settings
 from jobtech.common.repository import elastic
 
 log = logging.getLogger(__name__)
 
 EMAIL_REGEX = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
-valid_api_keys = dict()
-last_check_ts = 0
+# valid_api_keys = dict()
+# last_check_ts = 0
+
+
+def json_serializer(key, value):
+    if type(value) == str:
+        return (value, 1)
+    return (json.dumps(value), 2)
+
+
+def json_deserializer(key, value, flags):
+    if flags == 0:
+        return None
+    if flags == 1:
+        return value.decode('utf-8')
+    if flags == 2:
+        return json.loads(value.decode('utf-8'))
+    raise Exception("Unknown serialization format")
+
+
+client = base.Client(('localhost', 11211),
+                     serializer=json_serializer,
+                     deserializer=json_deserializer, ignore_exc=True)
 
 
 def check_api_key_simple(func):
@@ -31,8 +53,13 @@ def check_api_key_simple(func):
 def check_api_key(api_identifier):
     def real_check_api_key_decorator(func):
         def wrapper(*args, **kwargs):
-            global last_check_ts, valid_api_keys
-            if int(time.time()) > last_check_ts + 60:  # Refresh keys every 60 secs
+            # global last_check_ts, valid_api_keys
+            try:
+                valid_api_keys = client.get('valid_api_keys')
+            except ConnectionRefusedError:
+                valid_api_keys = None
+            # if int(time.time()) > last_check_ts + 60:  # Refresh keys every 60 secs
+            if not valid_api_keys:
                 apikeys_id = "%s_%s" % (settings.ES_APIKEYS_DOC_ID, api_identifier)
                 log.debug("Reloading API keys for id %s" % apikeys_id)
                 new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
@@ -40,7 +67,11 @@ def check_api_key(api_identifier):
                 if new_keys:
                     log.debug("Updating API keys from ES")
                     valid_api_keys = new_keys
-                last_check_ts = time.time()
+                    try:
+                        client.set('valid_api_keys', valid_api_keys, 60)
+                    except ConnectionRefusedError:
+                        log.debug("Memcache not available, reloading keys for " +
+                                  "each request.")
             apikey = request.headers.get(settings.APIKEY)
             if valid_api_keys and apikey in valid_api_keys.get('validkeys', []):
                 decoded_key = _decode_key(apikey)

@@ -1,5 +1,6 @@
-setuptools==40.4.3
-Flask==1.0.2
-flask_restplus==0.12.1
+setuptools
+Flask
+flask_restplus
 elasticsearch
-certifi==2019.3.9
+certifi
+pymemcache
