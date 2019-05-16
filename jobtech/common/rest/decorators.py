@@ -12,8 +12,6 @@ from jobtech.common.repository import elastic
 log = logging.getLogger(__name__)
 
 EMAIL_REGEX = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
-# valid_api_keys = dict()
-# last_check_ts = 0
 
 
 def json_serializer(key, value):
@@ -53,12 +51,8 @@ def check_api_key_simple(func):
 def check_api_key(api_identifier):
     def real_check_api_key_decorator(func):
         def wrapper(*args, **kwargs):
-            # global last_check_ts, valid_api_keys
-            try:
-                valid_api_keys = client.get('valid_api_keys')
-            except ConnectionRefusedError:
-                valid_api_keys = None
-            # if int(time.time()) > last_check_ts + 60:  # Refresh keys every 60 secs
+            memcache_key = "valid_api_keys_%s" % api_identifier
+            valid_api_keys = client.get(memcache_key)
             if not valid_api_keys:
                 apikeys_id = "%s_%s" % (settings.ES_APIKEYS_DOC_ID, api_identifier)
                 log.debug("Reloading API keys for id %s" % apikeys_id)
@@ -68,7 +62,7 @@ def check_api_key(api_identifier):
                     log.debug("Updating API keys from ES")
                     valid_api_keys = new_keys
                     try:
-                        client.set('valid_api_keys', valid_api_keys, 60)
+                        client.set(memcache_key, valid_api_keys, 60)
                     except ConnectionRefusedError:
                         log.debug("Memcache not available, reloading keys for " +
                                   "each request.")
