@@ -40,10 +40,17 @@ def set_custom_log_level(local_modules):
             if key.startswith(lm):
                 local_module = True
         if local_module:
-            if os.getenv('LOGLEVEL', '') == 'debug':
+            llevel = os.getenv('LOGLEVEL', '')
+            if llevel == 'debug':
                 print("Setting loglevel DEBUG for %s" % key)
                 logging.getLogger(key).setLevel(logging.DEBUG)
-            else:
+            elif llevel == 'warning':
+                print("Setting loglevel WARNING for %s" % key)
+                logging.getLogger(key).setLevel(logging.WARNING)
+            elif llevel == 'error':
+                print("Setting loglevel ERROR for %s" % key)
+                logging.getLogger(key).setLevel(logging.WARNING)
+            else:  # Default to loglevel INFO
                 print("Setting loglevel INFO for %s" % key)
                 logging.getLogger(key).setLevel(logging.INFO)
         else:
