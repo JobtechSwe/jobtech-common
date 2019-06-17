@@ -30,9 +30,9 @@ def json_deserializer(key, value, flags):
     raise Exception("Unknown serialization format")
 
 
-client = base.Client(('localhost', 11211),
-                     serializer=json_serializer,
-                     deserializer=json_deserializer, ignore_exc=True)
+memcache = base.Client(('localhost', 11211),
+                       serializer=json_serializer,
+                       deserializer=json_deserializer, ignore_exc=True)
 
 
 def check_api_key_simple(func):
@@ -48,11 +48,12 @@ def check_api_key_simple(func):
     return wrapper
 
 
-def check_api_key(api_identifier):
+def check_api_key(api_identifier, rate_limit=None):
     def real_check_api_key_decorator(func):
         def wrapper(*args, **kwargs):
             memcache_key = "valid_api_keys_%s" % api_identifier
-            valid_api_dict = client.get(memcache_key)
+            valid_api_dict = memcache.get(memcache_key)
+            log.info("RATE LIMIT: %s" % rate_limit)
             if not valid_api_dict:
                 log.debug("Reloading API keys for id %s" % api_identifier)
                 new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
@@ -61,12 +62,24 @@ def check_api_key(api_identifier):
                     log.debug("Updating API keys from ES")
                     valid_api_dict = new_keys
                     try:
-                        client.set(memcache_key, valid_api_dict, 60)
+                        memcache.set(memcache_key, valid_api_dict, 60)
                     except ConnectionRefusedError:
                         log.debug("Memcache not available, reloading keys for " +
                                   "each request.")
             apikey = request.headers.get(settings.APIKEY)
+            memcache_rate_key = "rate_limit_%s_%s" % (api_identifier, apikey)
             if apikey in valid_api_dict:
+                if rate_limit and memcache.get(memcache_rate_key):
+                    abort(429,
+                          message='Rate limit is one request per %d seconds.'
+                          % rate_limit)
+
+                if rate_limit:
+                    try:
+                        memcache.set(memcache_rate_key, True, rate_limit)
+                    except ConnectionRefusedError:
+                        log.debug("Memcache not available, unable to set rate limit.")
+
                 log.debug("API key \"%s\" is valid for application \"%s\" "
                           "(ID:%s)" % (apikey,
                                        valid_api_dict[apikey].get('app'),
