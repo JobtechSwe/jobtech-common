@@ -67,7 +67,8 @@ def check_api_key(api_identifier, rate_limit=None):
                         log.debug("Memcache not available, reloading keys for " +
                                   "each request.")
             apikey = request.headers.get(settings.APIKEY)
-            memcache_rate_key = "rate_limit_%s_%s" % (api_identifier, apikey)
+            memcache_rate_key = "rate_limit_%s_%s_%s" % \
+                (api_identifier, apikey, rate_limit)
             if apikey in valid_api_dict:
                 if rate_limit and memcache.get(memcache_rate_key):
                     abort(429,
