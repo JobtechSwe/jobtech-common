@@ -53,7 +53,6 @@ def check_api_key(api_identifier, rate_limit=None):
         def wrapper(*args, **kwargs):
             memcache_key = "valid_api_keys_%s" % api_identifier
             valid_api_dict = memcache.get(memcache_key)
-            log.info("RATE LIMIT: %s" % rate_limit)
             if not valid_api_dict:
                 log.debug("Reloading API keys for id %s" % api_identifier)
                 new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
