@@ -6,7 +6,9 @@ from jobtech.common import settings
 
 log = logging.getLogger(__name__)
 
-log.info("Using Elasticsearch node at %s:%s" % (settings.ES_HOST, settings.ES_PORT))
+log.info("Using Elasticsearch node for apikeys at %s:%s" %
+         (settings.ES_HOST, settings.ES_PORT))
+
 if settings.ES_USER and settings.ES_PWD:
     context = create_default_context(cafile=certifi.where())
     elastic = Elasticsearch([settings.ES_HOST], port=settings.ES_PORT,
