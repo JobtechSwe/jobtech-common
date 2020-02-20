@@ -1,6 +1,7 @@
+dateutil
 setuptools
 Flask
-flask_restplus
+flask_restx
 elasticsearch
 certifi
 pymemcache

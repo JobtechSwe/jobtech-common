@@ -4,7 +4,7 @@ import binascii
 import re
 import json
 from flask import request
-from flask_restplus import abort
+from flask_restx import abort
 from pymemcache.client import base
 from jobtech.common import settings
 from jobtech.common.repository import elastic
@@ -16,8 +16,8 @@ EMAIL_REGEX = re.compile(r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?")
 
 def json_serializer(key, value):
     if type(value) == str:
-        return (value, 1)
-    return (json.dumps(value), 2)
+        return value, 1
+    return json.dumps(value), 2
 
 
 def json_deserializer(key, value, flags):
