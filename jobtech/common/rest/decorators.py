@@ -54,11 +54,11 @@ def check_api_key(api_identifier, rate_limit=None):
             memcache_key = "valid_api_keys_%s" % api_identifier
             valid_api_dict = memcache.get(memcache_key)
             if not valid_api_dict:
-                log.debug("Reloading API keys for id %s" % api_identifier)
+                log.debug("Reloading API keys for api id: %s" % api_identifier)
                 new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
                                               id=api_identifier, ignore=404)
                 if new_keys:
-                    log.debug("Updating API keys from ES")
+                    log.debug("Updating API keys from ES: %s" % new_keys)
                     valid_api_dict = new_keys
                     try:
                         memcache.set(memcache_key, valid_api_dict, 60)
@@ -98,12 +98,13 @@ def check_api_key_and_return_metadata(api_identifier, rate_limit=None):
         def wrapper(*args, **kwargs):
             memcache_key = "valid_api_keys_%s" % api_identifier
             valid_api_dict = memcache.get(memcache_key)
+            log.debug("Memcache key: %s" % valid_api_dict)
             if not valid_api_dict:
-                log.debug("Reloading API keys for id %s" % api_identifier)
+                log.debug("Reloading API keys for api id: %s" % api_identifier)
                 new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
                                               id=api_identifier, ignore=404)
                 if new_keys:
-                    log.debug("Updating API keys from ES")
+                    log.debug("Updating API keys from ES: %s" % new_keys)
                     valid_api_dict = new_keys
                     try:
                         memcache.set(memcache_key, valid_api_dict, 60)
