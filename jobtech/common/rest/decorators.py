@@ -48,6 +48,52 @@ def check_api_key_simple(func):
     return wrapper
 
 
+def check_api_key(api_identifier, rate_limit=None):
+    def real_check_api_key_decorator(func):
+        def wrapper(*args, **kwargs):
+            memcache_key = "valid_api_keys_%s" % api_identifier
+            valid_api_dict = memcache.get(memcache_key)
+            if not valid_api_dict:
+                log.debug("Reloading API keys for api id: %s" % api_identifier)
+                new_keys = elastic.get_source(index=settings.ES_SYSTEM_INDEX,
+                                              id=api_identifier, ignore=404)
+                if new_keys:
+                    log.debug("Updating API keys from ES: %s" % new_keys)
+                    valid_api_dict = new_keys
+                    try:
+                        memcache.set(memcache_key, valid_api_dict, 60)
+                    except ConnectionRefusedError:
+                        log.debug(
+                            "Memcache not available, reloading keys for " +
+                            "each request.")
+            apikey = request.headers.get(settings.APIKEY)
+            memcache_rate_key = "rate_limit_%s_%s_%s" % \
+                                (api_identifier, apikey, rate_limit)
+            if apikey in valid_api_dict:
+                if rate_limit and memcache.get(memcache_rate_key):
+                    abort(429,
+                          message='Rate limit is one request per %d seconds.'
+                                  % rate_limit)
+
+                if rate_limit:
+                    try:
+                        memcache.set(memcache_rate_key, True, rate_limit)
+                    except ConnectionRefusedError:
+                        log.debug("Memcache not available, unable to set rate limit.")
+
+                log.debug("API key: %s is valid for application: %s (ID: %s)"
+                          % (apikey,
+                             valid_api_dict[apikey].get('app'),
+                             valid_api_dict[apikey].get('id')))
+                return func(*args, **kwargs)
+            log.info("Failed validation for key '%s'" % apikey)
+            abort(401, message="Missing or invalid API key")
+
+        return wrapper
+
+    return real_check_api_key_decorator
+
+
 def check_api_key_and_return_metadata(api_identifier, rate_limit=None):
     def real_check_api_key_metadata_decorator(func):
         def wrapper(*args, **kwargs):
@@ -64,16 +110,15 @@ def check_api_key_and_return_metadata(api_identifier, rate_limit=None):
                     try:
                         memcache.set(memcache_key, valid_api_dict, 60)
                     except ConnectionRefusedError:
-                        log.debug("Memcache not available, reloading keys for " +
-                                  "each request.")
+                        log.debug("Memcache not available, reloading keys for each request.")
             apikey = request.headers.get(settings.APIKEY)
             memcache_rate_key = "rate_limit_%s_%s_%s" % \
-                (api_identifier, apikey, rate_limit)
+                                (api_identifier, apikey, rate_limit)
             if apikey in valid_api_dict:
                 if rate_limit and memcache.get(memcache_rate_key):
                     abort(429,
                           message='Rate limit is one request per %d seconds.'
-                          % rate_limit)
+                                  % rate_limit)
 
                 if rate_limit:
                     try:
@@ -82,10 +127,10 @@ def check_api_key_and_return_metadata(api_identifier, rate_limit=None):
                         log.debug("Memcache not available, unable to set rate limit.")
                 kwargs['key_id'] = apikey
                 kwargs['key_app'] = valid_api_dict[apikey].get('app')
-                log.debug("API key \"%s\" is valid for application \"%s\" "
-                          "(ID:%s)" % (apikey,
-                                       valid_api_dict[apikey].get('app'),
-                                       valid_api_dict[apikey].get('id')))
+                log.debug("API key: %s is valid for application: %s (ID: %s)"
+                          % (apikey,
+                             valid_api_dict[apikey].get('app'),
+                             valid_api_dict[apikey].get('id')))
                 return func(*args, **kwargs)
             log.info("Failed validation for key '%s'" % apikey)
             abort(401, message="Missing or invalid API key")
