@@ -4,7 +4,7 @@ import os
 
 
 def configure_logging(local_modules=[]):
-    logging.basicConfig()
+    logging.basicConfig(level=logging.DEBUG)
     # Remove basicConfig-handlers and replace with custom formatter.
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
