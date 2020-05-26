@@ -13,7 +13,7 @@ def configure_logging(local_modules=[]):
     f = create_log_formatter()
     stream_handler.setFormatter(f)
     root = logging.getLogger()
-    # root.setLevel(logging.INFO)
+    root.setLevel(logging.DEBUG)
     root.addHandler(stream_handler)
 
     set_custom_log_level(local_modules)
