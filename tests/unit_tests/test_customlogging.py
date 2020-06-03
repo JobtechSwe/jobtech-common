@@ -9,8 +9,6 @@ import pytest
 from jobtech.common.customlogging import JobtechLogFormatter
 
 
-# from sokannonser import log as sokannonserlog
-
 def configure_logging():
     logging.basicConfig()
     # Remove basicConfig-handlers and replace with custom formatter.
@@ -21,7 +19,6 @@ def configure_logging():
     f = create_log_formatter()
     stream_handler.setFormatter(f)
     root = logging.getLogger()
-    # root.setLevel(logging.INFO)
     root.addHandler(stream_handler)
 
     root.setLevel(logging.DEBUG)
@@ -44,12 +41,9 @@ testlog.debug(logging.getLevelName(testlog.getEffectiveLevel()) + ' log level ac
 testlog.info("Starting %s" % __name__)
 
 
-# sokannonserlog = log
-
 @pytest.mark.unit
 def test_log_level_develop():
     print('============================', sys._getframe().f_code.co_name, '============================ ')
-    # sokannonserlog.debug(logging.getLevelName(sokannonserlog.getEffectiveLevel()) + ' log level activated.')
     JobtechLogFormatter.print_test_log_messages(testlog)
 
     log_level_name = logging.getLevelName(testlog.getEffectiveLevel())
@@ -69,9 +63,6 @@ def test_log_newlines_develop():
     string_io_handler.setFormatter(f)
     root.addHandler(string_io_handler)
     root.handlers[0].setFormatter(f)
-    # print('repr(f.linesep)', repr(f.linesep))
-    # NarvalLogFormatter.printTestLogMessages(sokannonserlog)
-
     testlog.debug('''hello\nworld''')
     logrow_val = log_stream.getvalue()
     assert ('\r' not in logrow_val)
@@ -90,7 +81,6 @@ def test_log_newlines_production():
     root.handlers[0].setFormatter(f)
     testlog.debug('''hello\nworld\r''')
     logrow_val = log_stream.getvalue()
-    # print('logrow_val', logrow_val)
     assert ('hello\rworld\n' in logrow_val)
 
 
@@ -108,9 +98,6 @@ def test_log_newlines_correct_lastchar():
     testlog.debug('''hello\nworld''')
     logrow_val = log_stream.getvalue()
 
-    # print(type(logrow_val))
-    # print('logrow_val', logrow_val)
-    # print(type(repr(logrow_val)))
     assert (logrow_val.endswith('\n'))
 
 
