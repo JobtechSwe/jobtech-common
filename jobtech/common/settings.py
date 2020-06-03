@@ -1,8 +1,7 @@
 import os
 
-# from valuestore import taxonomy
-#
-# # Elasticsearch settings
+
+# Elasticsearch settings
 ES_HOST = os.getenv("ES_APIKEYS_HOST", os.getenv("ES_HOST", "localhost"))
 ES_PORT = os.getenv("ES_APIKEYS_PORT", os.getenv("ES_PORT", 9200))
 ES_USER = os.getenv("ES_APIKEYS_USER", os.getenv("ES_USER"))
