@@ -4,3 +4,4 @@ flask_restx
 elasticsearch
 certifi
 pymemcache
+pytest
