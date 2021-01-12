@@ -1,7 +1,7 @@
 setuptools
-Flask
-flask_restx
-elasticsearch
-certifi
+flask~=1.1.2
+flask-restx~=0.2.0
+elasticsearch~=7.6.0
+certifi~=2020.4.5.1
 pymemcache
-pytest
+pytest~=5.4.1
